@@ -2,8 +2,12 @@ import express from 'express';
 import multer from 'multer';
 import { importCSV } from './importHandler.js';
 import { query } from './db.js';
+import cors from "cors";
+
+
 
 const app = express();
+app.use(cors());
 const upload = multer({ dest: 'uploads/' });
 
 app.use(express.json());
@@ -28,6 +32,9 @@ app.post('/api/import', upload.single('csvfile'), async (req, res) => {
             ]
         );
 
+
+        console.log("dddddddd",result.anomalies);
+
         res.json({
             success: true,
             message: 'Import completed',
@@ -39,6 +46,8 @@ app.post('/api/import', upload.single('csvfile'), async (req, res) => {
             anomalies: result.anomalies
         });
     } catch (error) {
+         console.error(error);
+        
         res.status(500).json({ error: error.message });
     }
 });
@@ -52,8 +61,10 @@ app.get('/api/expenses', async (req, res) => {
         );
         res.json(expenses);
     } catch (error) {
+          console.error(error);
         res.status(500).json({ error: error.message });
     }
+
 });
 
 
@@ -66,6 +77,47 @@ app.get('/api/reports', async (req, res) => {
         );
         res.json(reports);
     } catch (error) {
+          
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+
+app.get('/api/anomalies', async (req, res) => {
+    try {
+        // Get the most recent import report
+        const reports = await query(
+            'SELECT report_details, anomalies_found, import_date, file_name FROM import_reports ORDER BY import_date DESC LIMIT 1'
+        );
+        
+        if (reports.length === 0) {
+            return res.json({ anomalies: [], count: 0 });
+        }
+        
+        const latestReport = reports[0];
+        let anomalies = [];
+        
+        // Parse the JSON from report_details
+        if (latestReport.report_details) {
+            // If it's already an object, use it directly
+            if (typeof latestReport.report_details === 'object') {
+                anomalies = latestReport.report_details;
+            } 
+            // If it's a string, parse it
+            else if (typeof latestReport.report_details === 'string') {
+                anomalies = JSON.parse(latestReport.report_details);
+            }
+        }
+        
+        res.json({
+            anomalies: anomalies,
+            count: latestReport.anomalies_found,
+            importDate: latestReport.import_date,
+            fileName: latestReport.file_name
+        });
+    } catch (error) {
+        console.error('Error fetching anomalies:', error);
         res.status(500).json({ error: error.message });
     }
 });
