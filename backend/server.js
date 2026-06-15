@@ -56,6 +56,20 @@ app.get('/api/expenses', async (req, res) => {
     }
 });
 
+
+
+// Endpoint 3: Get import reports
+app.get('/api/reports', async (req, res) => {
+    try {
+        const reports = await query(
+            'SELECT * FROM import_reports ORDER BY import_date DESC'
+        );
+        res.json(reports);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.listen(3000, () => {
     console.log('Server running on http://localhost:3000');
 });
