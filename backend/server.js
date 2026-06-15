@@ -44,7 +44,17 @@ app.post('/api/import', upload.single('csvfile'), async (req, res) => {
 });
 
 
-
+// Endpoint 2: Get all expenses
+app.get('/api/expenses', async (req, res) => {
+    try {
+        const expenses = await query(
+            'SELECT * FROM expenses ORDER BY expense_date DESC'
+        );
+        res.json(expenses);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 app.listen(3000, () => {
     console.log('Server running on http://localhost:3000');
