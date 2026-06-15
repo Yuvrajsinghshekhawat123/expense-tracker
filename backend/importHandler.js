@@ -65,3 +65,77 @@ async function importCSV(filePath, userId) {
         anomalies
     };
 }
+
+
+
+
+
+/*
+3. Process each row
+const result = processRow(row, rowNumber);
+
+For every row, processRow() checks for anomalies such as:
+Negative amount
+Missing date
+Future date
+Missing payer
+
+*/
+
+function processRow(row, rowNumber) {
+    let amount = parseFloat(row.amount);
+    let anomalyType = null;
+    let handling = null;
+
+    // ANOMALY 1: Negative Amount
+    if (amount < 0) {
+        anomalyType = 'NEGATIVE_AMOUNT';
+        amount = Math.abs(amount);
+        handling = 'Converted to positive amount as REFUND';
+    }
+
+    // ANOMALY 2: Missing Date
+    if (!row.date || row.date.trim() === '') {
+        anomalyType = 'MISSING_DATE';
+        handling = 'Missing date - using current date';
+        row.date = new Date().toISOString().split('T')[0];
+    }
+
+    // ANOMALY 3: Future Date
+    const expenseDate = new Date(row.date);
+    const today = new Date();
+
+    if (expenseDate > today) {
+        anomalyType = 'FUTURE_DATE';
+        handling = `Future date ${row.date} - changed to today's date`;
+        row.date = today.toISOString().split('T')[0];
+    }
+
+    // ANOMALY 4: Missing Paid By
+    if (!row.paid_by || row.paid_by.trim() === '') {
+        anomalyType = 'MISSING_PAID_BY';
+        handling = 'Missing payer - set to "UNKNOWN"';
+        row.paid_by = 'UNKNOWN';
+    }
+
+    return {
+        isAnomaly: anomalyType !== null,
+        anomaly: anomalyType
+            ? { rowNumber, type: anomalyType, handling }
+            : null,
+        shouldImport: true,
+        data: {
+            date: row.date,
+            category: row.category || 'UNCATEGORIZED',
+            amount,
+            paid_by: row.paid_by,
+            shared_with: row.shared_with || '',
+            description: row.description || '',
+            isAnomaly: anomalyType !== null,
+            anomalyType,
+            handling
+        }
+    };
+}
+
+export { importCSV };
